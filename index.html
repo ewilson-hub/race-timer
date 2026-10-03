@@ -1,0 +1,712 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>5K Race Timer</title>
+<style>
+:root{
+  --bg:#f3f5f8; --card:#fff; --ink:#151a22; --muted:#5b6574; --line:#dde2ea;
+  --accent:#1859c9; --accent-ink:#fff;
+  --good:#17692f; --goodbg:#e4f5e9; --bad:#b3261e; --badbg:#fdeceb; --warn:#8a5a00; --warnbg:#fff3d1;
+  --gold:#fff6d6;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 system-ui,"Segoe UI",Roboto,sans-serif}
+header{background:#101828;color:#fff;display:flex;align-items:center;gap:20px;padding:10px 24px;flex-wrap:wrap}
+header h1{font-size:20px;margin:0;font-weight:700}
+nav{display:flex;gap:6px;flex:1}
+nav button{background:transparent;color:#cfd6e4;border:0;padding:9px 16px;border-radius:8px;font:inherit;font-weight:600;cursor:pointer}
+nav button:hover{background:#1d2840}
+nav button.on{background:#fff;color:#101828}
+.hclock{font-size:14px;color:#cfd6e4}
+.hclock b{font:700 22px ui-monospace,Consolas,monospace;color:#fff;margin-left:6px}
+main{max-width:1180px;margin:0 auto;padding:20px 24px 60px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin-bottom:18px}
+h2{font-size:18px;margin:0 0 12px}
+h3{font-size:15px;margin:0 0 8px}
+.row{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap}
+.row.between{justify-content:space-between;align-items:center}
+.grow{flex:1;min-width:180px}
+label{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:600;color:var(--muted)}
+input,select{font:inherit;color:var(--ink);padding:9px 10px;border:1px solid #b9c1ce;border-radius:8px;background:#fff;min-width:0}
+input:focus,select:focus{outline:3px solid #9cc0ff;border-color:var(--accent)}
+#rBib{width:100px} #rAge{width:90px}
+.btn{font:inherit;font-weight:600;padding:9px 16px;border-radius:8px;border:1px solid #b9c1ce;background:#fff;color:var(--ink);cursor:pointer}
+.btn:hover{background:#eef2f8}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover{background:#1349a6}
+.btn.danger{color:var(--bad);border-color:#e3b3b0}
+.btn.sm{padding:4px 10px;font-size:13px}
+.msg{margin-top:10px;padding:9px 12px;border-radius:8px;font-weight:600}
+.msg.good{background:var(--goodbg);color:var(--good)}
+.msg.bad{background:var(--badbg);color:var(--bad)}
+.msg.warn{background:var(--warnbg);color:var(--warn)}
+table{width:100%;border-collapse:collapse;font-size:15px}
+th{text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);padding:8px 10px;border-bottom:2px solid var(--line);white-space:nowrap}
+td{padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
+tbody tr:hover{background:#f7f9fc}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+td.mono{font-family:ui-monospace,Consolas,monospace;font-variant-numeric:tabular-nums}
+td.hl{font-weight:800;background:var(--gold)}
+td.act{text-align:right;white-space:nowrap}
+.tag{display:inline-block;padding:2px 8px;border-radius:99px;font-size:12px;font-weight:700}
+.tag.warn{background:var(--warnbg);color:var(--warn)}
+.tag.bad{background:var(--badbg);color:var(--bad)}
+.tag.good{background:var(--goodbg);color:var(--good)}
+.tag.gray{background:#e9edf3;color:var(--muted)}
+.empty{color:var(--muted);padding:18px 4px}
+/* race control */
+.startbox{text-align:center;padding:36px 20px}
+.startbox p{color:var(--muted);margin:0 0 20px}
+.startbtn{font:800 34px system-ui;padding:26px 70px;border-radius:16px;border:0;background:#1a8f3c;color:#fff;cursor:pointer;box-shadow:0 4px 0 #0f6a2a}
+.startbtn:hover{background:#17803a}
+.bigclock{font:800 76px/1 ui-monospace,Consolas,monospace;text-align:center;letter-spacing:-.02em;margin:4px 0}
+.clocksub{text-align:center;color:var(--muted);font-size:14px}
+.finishrow{display:flex;gap:14px;justify-content:center;align-items:stretch;margin-top:18px;flex-wrap:wrap}
+#bibInput{font:700 44px ui-monospace,Consolas,monospace;width:260px;text-align:center;padding:14px;border-width:3px;border-color:var(--accent)}
+.stampbtn{font:700 20px system-ui;padding:0 28px;border-radius:12px;border:3px solid #b9c1ce;background:#fff;cursor:pointer}
+.stampbtn:hover{background:#eef2f8}
+.hint{text-align:center;color:var(--muted);font-size:13px;margin-top:8px}
+#finMsg{font-size:22px;text-align:center;margin-top:14px;min-height:48px}
+.links{display:flex;gap:16px;justify-content:center;margin-top:14px;font-size:14px;flex-wrap:wrap}
+.links a{color:var(--accent);cursor:pointer;text-decoration:underline}
+.assign{width:90px;padding:4px 8px}
+tr.unassigned{background:var(--warnbg)}
+/* dashboard */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:18px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 16px}
+.stat b{display:block;font-size:28px;font-variant-numeric:tabular-nums}
+.stat span{color:var(--muted);font-size:13px;font-weight:600}
+.seg{display:inline-flex;border:1px solid #b9c1ce;border-radius:8px;overflow:hidden}
+.seg button{border:0;background:#fff;padding:8px 16px;font:inherit;font-weight:600;cursor:pointer}
+.seg button.on{background:var(--accent);color:#fff}
+.awards{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px}
+.award{border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:#fff}
+.award h3{border-bottom:1px solid var(--line);padding-bottom:6px}
+.award ol{margin:0;padding:0;list-style:none}
+.award li{display:flex;gap:8px;padding:4px 0;align-items:baseline}
+.award li .pl{font-weight:800;width:20px}
+.award li .nm{flex:1}
+.award li .tm{font-family:ui-monospace,Consolas,monospace}
+.award li .bb{color:var(--muted);font-size:13px}
+.sexhead{margin:18px 0 8px;font-size:16px}
+details{margin-top:14px}
+summary{cursor:pointer;font-weight:700}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.chip{background:#eef1f6;border-radius:6px;padding:3px 9px;font-size:14px}
+.note{color:var(--muted);font-size:13px;margin:6px 0 0}
+.setgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px}
+#printTitle{display:none}
+@media print{
+  #printTitle{display:block!important}
+  header,nav,.noprint,.btn,.seg,.row.filters{display:none!important}
+  body{background:#fff}
+  main{padding:0;max-width:none}
+  .card{border:0;padding:0}
+  section:not(.printable){display:none!important}
+}
+</style>
+</head>
+<body>
+<header>
+  <h1 id="title">5K Race Timer</h1>
+  <nav>
+    <button data-tab="reg">Registration</button>
+    <button data-tab="ctl">Race Control</button>
+    <button data-tab="dash">Dashboard</button>
+    <button data-tab="set">Settings</button>
+  </nav>
+  <div class="hclock">Race clock <b class="liveclock">Not started</b></div>
+</header>
+
+<main>
+
+<!-- ============ REGISTRATION ============ -->
+<section id="tab-reg">
+  <div class="card">
+    <h2 id="regTitle">Add participant</h2>
+    <form id="regForm" class="row" autocomplete="off">
+      <label>Bib #<input id="rBib" required></label>
+      <label class="grow">Name<input id="rName" required></label>
+      <label>Age<input id="rAge" type="number" min="1" max="110" required></label>
+      <label>Gender
+        <select id="rGender" required>
+          <option value="" selected disabled>Select</option>
+          <option value="M">Male</option>
+          <option value="F">Female</option>
+        </select>
+      </label>
+      <button class="btn primary" id="rSave">Add</button>
+      <button type="button" class="btn" id="rCancel" hidden>Cancel</button>
+    </form>
+    <div id="regMsg"></div>
+  </div>
+
+  <div class="card">
+    <div class="row between" style="margin-bottom:10px">
+      <h2 style="margin:0">Participants <span id="regCount" class="tag gray"></span></h2>
+      <div class="row" style="align-items:center">
+        <input id="regSearch" placeholder="Search bib or name">
+        <button class="btn" id="exportReg">Export CSV</button>
+      </div>
+    </div>
+    <div id="regTable"></div>
+  </div>
+</section>
+
+<!-- ============ RACE CONTROL ============ -->
+<section id="tab-ctl">
+  <div class="card startbox" id="ctlPre">
+    <h2>Ready to race</h2>
+    <p><span id="preCount">0</span> participants registered. The start time is recorded the instant you click the button.</p>
+    <button class="startbtn" id="startBtn">START RACE</button>
+  </div>
+
+  <div id="ctlRun">
+    <div class="card">
+      <div class="bigclock liveclock">0:00:00.0</div>
+      <div class="clocksub" id="startedAt"></div>
+
+      <div id="endBanner" class="msg good" hidden style="text-align:center;font-size:18px"></div>
+      <div id="finInput">
+      <div class="finishrow">
+        <input id="bibInput" placeholder="BIB #" autocomplete="off" inputmode="numeric">
+        <button class="stampbtn" id="stampBtn">STAMP NOW<br><small style="font-weight:500;font-size:13px">time only, bib later</small></button>
+      </div>
+      <div class="hint">Type the bib and press <b>Enter</b> to record a finish. Press <b>Space</b> (empty box) or the button to stamp a time with no bib.</div>
+      </div>
+      <div id="finMsg"></div>
+      <div class="row" style="justify-content:center;margin-top:18px">
+        <button class="btn danger" id="endBtn" style="font-size:18px;padding:12px 28px">END RACE</button>
+        <button class="btn primary" id="reopenBtn" hidden>Reopen race</button>
+      </div>
+      <div class="links">
+        <a id="undoLast">Undo last entry</a>
+        <a id="editStart">Edit start time</a>
+        <a id="backupNow">Download backup</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="row between" style="margin-bottom:8px">
+        <h2 style="margin:0">Finish log <span id="feedCount" class="tag gray"></span></h2>
+      </div>
+      <div id="feed"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ DASHBOARD ============ -->
+<section id="tab-dash" class="printable">
+  <div class="stats" id="stats"></div>
+  <div id="dashWarn"></div>
+
+  <div class="card">
+    <div class="row between noprint" style="margin-bottom:12px">
+      <div class="seg" id="viewSeg">
+        <button data-view="results" class="on">Results</button>
+        <button data-view="awards">Awards</button>
+      </div>
+      <div class="row filters" style="align-items:center">
+        <div id="resFilters" class="row" style="align-items:center">
+          <label style="flex-direction:row;align-items:center;gap:8px">Sex
+            <select id="fSex"><option value="all">All</option><option value="M">Male</option><option value="F">Female</option></select>
+          </label>
+          <label style="flex-direction:row;align-items:center;gap:8px">Age group
+            <select id="fAg"></select>
+          </label>
+        </div>
+        <label id="awFilters" style="flex-direction:row;align-items:center;gap:8px" hidden>
+          <input type="checkbox" id="awExcl" checked> Overall winners excluded from age group awards
+        </label>
+        <button class="btn" id="exportRes">Export CSV</button>
+        <button class="btn" id="printBtn">Print</button>
+      </div>
+    </div>
+    <h2 id="printTitle"></h2>
+    <div id="dashBody"></div>
+  </div>
+</section>
+
+<!-- ============ SETTINGS ============ -->
+<section id="tab-set">
+  <div class="setgrid">
+    <div class="card">
+      <h2>Race</h2>
+      <label>Race name<input id="sName"></label>
+      <br>
+      <label>Age group starting ages (comma separated)<input id="sAges"></label>
+      <p class="note" id="agPreview"></p>
+      <br>
+      <label style="flex-direction:row;align-items:center;gap:8px"><input type="checkbox" id="sTenths"> Show tenths of a second on results</label>
+    </div>
+    <div class="card">
+      <h2>Backup &amp; restore</h2>
+      <p class="note" style="margin-top:0">Data is saved in this browser automatically. Download a backup now and then, and always open the same file from the same location.</p>
+      <div class="row" style="margin-top:12px">
+        <button class="btn primary" id="expJson">Download backup</button>
+        <label class="btn" style="flex-direction:row;cursor:pointer">Restore backup<input type="file" id="impFile" accept=".json" hidden></label>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Danger zone</h2>
+      <div class="row">
+        <button class="btn danger" id="clearRace">Reset race (clear start &amp; finishes)</button>
+        <button class="btn danger" id="clearAll">Delete everything</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<script>
+(function(){
+'use strict';
+const KEY='race5k.v1', MILES=3.10686;
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pad=(n,w=2)=>String(n).padStart(w,'0');
+
+const defaults=()=>({raceName:'5K Race',ageStarts:'0,15,20,30,40,50,60',tenths:false,participants:[],raceStart:null,raceEnd:null,finishes:[],nextId:1});
+let S;
+let ui={sex:'all',ag:'all',view:'results',tab:'reg',editing:null};
+try{ui.tab=localStorage.getItem(KEY+'.tab')||'reg';}catch(_){}
+
+function load(){
+  try{const r=localStorage.getItem(KEY);S=r?Object.assign(defaults(),JSON.parse(r)):defaults();}
+  catch(_){S=defaults();}
+}
+function save(){
+  try{localStorage.setItem(KEY,JSON.stringify(S));}
+  catch(_){alert('WARNING: could not save to browser storage. Download a backup now.');}
+}
+
+/* ---------- helpers ---------- */
+const norm=b=>{b=String(b).trim().toUpperCase();return /^\d+$/.test(b)?String(parseInt(b,10)):b;};
+const pmap=()=>new Map(S.participants.map(p=>[p.bib,p]));
+const cmpBib=(a,b)=>a.localeCompare(b,undefined,{numeric:true});
+
+function fmtTime(ms,tenths){
+  if(ms<0)return '-'+fmtTime(-ms,tenths);
+  const t=Math.floor(ms/1000),h=Math.floor(t/3600),m=Math.floor(t%3600/60),s=t%60;
+  let o=h?`${h}:${pad(m)}:${pad(s)}`:`${m}:${pad(s)}`;
+  if(tenths)o+='.'+Math.floor(ms%1000/100);
+  return o;
+}
+const fmtPace=ms=>fmtTime(ms/MILES,false)+' /mi';
+const tod=t=>new Date(t).toLocaleTimeString([], {hour:'numeric',minute:'2-digit',second:'2-digit'});
+function parseElapsed(str){
+  const parts=String(str).trim().split(':');
+  if(parts.length<1||parts.length>3||parts.some(p=>p===''||isNaN(p)))return null;
+  const n=parts.map(Number);
+  let sec=0;for(const x of n)sec=sec*60+x;
+  return Math.round(sec*1000);
+}
+
+function groups(){
+  const starts=[...new Set(S.ageStarts.split(',').map(x=>parseInt(x,10)).filter(n=>!isNaN(n)&&n>=0))].sort((a,b)=>a-b);
+  if(!starts.length||starts[0]!==0)starts.unshift(0);
+  return starts.map((s,i)=>{
+    const next=starts[i+1];
+    let label;
+    if(next===undefined)label=i===0?'All ages':`${s}+`;
+    else if(i===0)label=`${next-1} & under`;
+    else label=`${s}-${next-1}`;
+    return {start:s,label};
+  });
+}
+function ageGroup(age){
+  let r=null;
+  for(const g of groups())if(age>=g.start)r=g;
+  return (r||groups()[0]).label;
+}
+
+/* ---------- results engine ---------- */
+function results(){
+  if(S.raceStart==null)return [];
+  const bp=pmap();
+  const rows=S.finishes.filter(f=>f.bib!=null&&bp.has(f.bib)).map(f=>{
+    const p=bp.get(f.bib);
+    return {f,p,ms:f.time-S.raceStart,ag:ageGroup(p.age)};
+  });
+  rows.sort((a,b)=>a.f.time-b.f.time||a.f.id-b.f.id);
+  const cs={},ca={};
+  rows.forEach((r,i)=>{
+    r.overall=i+1;
+    cs[r.p.gender]=(cs[r.p.gender]||0)+1;r.sexRank=cs[r.p.gender];
+    const k=r.p.gender+'|'+r.ag;ca[k]=(ca[k]||0)+1;r.agRank=ca[k];
+  });
+  return rows;
+}
+
+/* ---------- tabs ---------- */
+function switchTab(t){
+  ui.tab=t;
+  try{localStorage.setItem(KEY+'.tab',t);}catch(_){}
+  for(const id of ['reg','ctl','dash','set'])$('tab-'+id).hidden=id!==t;
+  document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.tab===t));
+  if(t==='ctl'&&S.raceStart!=null)$('bibInput').focus();
+  if(t==='reg'&&ui.editing===null)$('rName').focus();
+}
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>switchTab(b.dataset.tab));
+
+/* ---------- registration ---------- */
+function regMsg(kind,text){$('regMsg').innerHTML=text?`<div class="msg ${kind}">${esc(text)}</div>`:'';}
+function nextBib(){
+  const nums=S.participants.map(p=>parseInt(p.bib,10)).filter(n=>!isNaN(n));
+  return String((nums.length?Math.max(...nums):0)+1);
+}
+function resetForm(){
+  ui.editing=null;
+  $('regTitle').textContent='Add participant';
+  $('rSave').textContent='Add';$('rCancel').hidden=true;
+  $('rBib').value=nextBib();$('rName').value='';$('rAge').value='';$('rGender').value='';
+  $('rName').focus();
+}
+$('regForm').addEventListener('submit',e=>{
+  e.preventDefault();
+  const bib=norm($('rBib').value),name=$('rName').value.trim().replace(/\s+/g,' ');
+  const age=parseInt($('rAge').value,10),gender=$('rGender').value;
+  if(!bib||!name||!(age>=1&&age<=110)||!gender){regMsg('bad','Fill in every field (age 1-110).');return;}
+  const dup=S.participants.find(p=>p.bib===bib&&p.bib!==ui.editing);
+  if(dup){regMsg('bad',`Bib ${bib} is already assigned to ${dup.name}.`);return;}
+  if(ui.editing!==null){
+    const p=S.participants.find(p=>p.bib===ui.editing);
+    if(bib!==ui.editing)S.finishes.forEach(f=>{if(f.bib===ui.editing)f.bib=bib;});
+    Object.assign(p,{bib,name,age,gender});
+    regMsg('good',`Updated #${bib} ${name}.`);
+  }else{
+    S.participants.push({bib,name,age,gender,dns:false});
+    regMsg('good',`Added #${bib} ${name}.`);
+  }
+  save();renderAll();resetForm();
+});
+$('rCancel').onclick=()=>{regMsg('','');resetForm();};
+$('regSearch').oninput=renderReg;
+
+function renderReg(){
+  const q=$('regSearch').value.trim().toLowerCase();
+  const fin=new Map(results().map(r=>[r.p.bib,r]));
+  const list=S.participants.filter(p=>!q||p.bib.toLowerCase().includes(q)||p.name.toLowerCase().includes(q)).sort((a,b)=>cmpBib(a.bib,b.bib));
+  $('regCount').textContent=S.participants.length;
+  if(!S.participants.length){$('regTable').innerHTML='<div class="empty">No participants yet. Add the first one above.</div>';return;}
+  if(!list.length){$('regTable').innerHTML='<div class="empty">No matches.</div>';return;}
+  $('regTable').innerHTML='<table><thead><tr><th>Bib</th><th>Name</th><th class="num">Age</th><th>Sex</th><th>Age group</th><th>Status</th><th></th></tr></thead><tbody>'+
+  list.map(p=>{
+    const r=fin.get(p.bib);
+    const st=r?`<span class="tag good">Finished ${fmtTime(r.ms,S.tenths)}</span>`:p.dns?'<span class="tag gray">DNS</span>':S.raceEnd!=null?'<span class="tag bad">DNF</span>':'<span class="tag gray">Registered</span>';
+    return `<tr data-bib="${esc(p.bib)}"><td><b>${esc(p.bib)}</b></td><td>${esc(p.name)}</td><td class="num">${p.age}</td><td>${p.gender}</td><td>${esc(ageGroup(p.age))}</td><td>${st}</td>`+
+    `<td class="act"><button class="btn sm" data-act="edit">Edit</button> <button class="btn sm" data-act="dns">${p.dns?'Undo DNS':'DNS'}</button> <button class="btn sm danger" data-act="del">Delete</button></td></tr>`;
+  }).join('')+'</tbody></table>';
+}
+$('regTable').addEventListener('click',e=>{
+  const b=e.target.closest('button[data-act]');if(!b)return;
+  const bib=b.closest('tr').dataset.bib,p=S.participants.find(x=>x.bib===bib);
+  if(b.dataset.act==='edit'){
+    ui.editing=bib;
+    $('regTitle').textContent=`Editing #${bib}`;$('rSave').textContent='Save';$('rCancel').hidden=false;
+    $('rBib').value=p.bib;$('rName').value=p.name;$('rAge').value=p.age;$('rGender').value=p.gender;
+    regMsg('','');window.scrollTo(0,0);$('rName').focus();
+  }else if(b.dataset.act==='dns'){
+    p.dns=!p.dns;save();renderAll();
+  }else if(b.dataset.act==='del'){
+    const hasFin=S.finishes.some(f=>f.bib===bib);
+    if(!confirm(`Delete #${bib} ${p.name}?`+(hasFin?'\n\nThis runner has a recorded finish; the time stays in the log as an unregistered bib.':'')))return;
+    S.participants=S.participants.filter(x=>x!==p);save();renderAll();
+  }
+});
+
+/* ---------- csv / download ---------- */
+const csvCell=v=>{v=String(v??'');return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;};
+const toCsv=rows=>'﻿'+rows.map(r=>r.map(csvCell).join(',')).join('\r\n');
+function download(name,text,type){
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:type||'text/csv'}));
+  a.download=name;document.body.appendChild(a);a.click();
+  setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);
+}
+const slug=()=>S.raceName.replace(/[^\w]+/g,'-').replace(/^-|-$/g,'')||'race';
+function backup(){download(`${slug()}-backup-${new Date().toISOString().slice(0,16).replace(/[:T]/g,'-')}.json`,JSON.stringify(S,null,1),'application/json');}
+$('exportReg').onclick=()=>download(`${slug()}-participants.csv`,toCsv([['Bib','Name','Age','Gender','Age Group','DNS'],...S.participants.slice().sort((a,b)=>cmpBib(a.bib,b.bib)).map(p=>[p.bib,p.name,p.age,p.gender,ageGroup(p.age),p.dns?'Y':''])]));
+
+/* ---------- race control ---------- */
+function setFinMsg(kind,html){$('finMsg').innerHTML=html?`<div class="msg ${kind}">${html}</div>`:'';}
+
+$('startBtn').onclick=()=>{
+  const t=Date.now(); // captured at the click, before any dialog
+  if(!confirm(`Start the race clock?\n\nStart time will be recorded as ${tod(t)} (the moment you clicked).`))return;
+  S.raceStart=t;save();renderAll();$('bibInput').focus();
+};
+
+function recordFinish(t,raw){
+  if(S.raceEnd!=null)return;
+  const bib=norm(raw);
+  const ex=S.finishes.find(f=>f.bib===bib);
+  if(ex){setFinMsg('bad',`Bib ${esc(bib)} already finished at ${fmtTime(ex.time-S.raceStart,true)}. Not recorded.`);$('bibInput').select();return;}
+  const f={id:S.nextId++,time:t,bib};
+  S.finishes.push(f);save();renderAll();
+  const p=pmap().get(bib),ms=t-S.raceStart;
+  if(p){
+    const r=results().find(x=>x.f===f);
+    setFinMsg('good',`✓ #${esc(bib)} ${esc(p.name)} · ${fmtTime(ms,true)} · overall ${r.overall} · ${p.gender==='M'?'male':'female'} ${r.sexRank} · ${esc(r.ag)} ${r.agRank}`);
+  }else setFinMsg('warn',`⚠ Bib ${esc(bib)} is not registered. Time ${fmtTime(ms,true)} recorded. Register this bib on the Registration tab.`);
+  $('bibInput').value='';$('bibInput').focus();
+}
+function stamp(t){
+  if(S.raceEnd!=null)return;
+  S.finishes.push({id:S.nextId++,time:t,bib:null});save();renderAll();
+  setFinMsg('warn',`⏱ Time ${fmtTime(t-S.raceStart,true)} stamped with no bib. Assign it in the log below.`);
+  $('bibInput').focus();
+}
+$('bibInput').addEventListener('keydown',e=>{
+  if(S.raceStart==null||S.raceEnd!=null)return;
+  if(e.key==='Enter'){
+    const t=Date.now();e.preventDefault();
+    const raw=e.target.value.trim();if(raw)recordFinish(t,raw);
+  }else if(e.key===' '){
+    const t=Date.now();e.preventDefault();
+    if(!e.target.value.trim())stamp(t);
+  }
+});
+$('stampBtn').onclick=()=>{const t=Date.now();if(S.raceStart!=null&&S.raceEnd==null)stamp(t);};
+
+function sortedFinishes(){return S.finishes.slice().sort((a,b)=>a.time-b.time||a.id-b.id);}
+
+function renderFeed(){
+  const all=sortedFinishes(),bp=pmap();
+  const un=all.filter(f=>f.bib==null).length;
+  $('feedCount').textContent=`${all.length} total`+(un?` · ${un} unassigned`:'');
+  if(!all.length){$('feed').innerHTML='<div class="empty">No finishers yet.</div>';return;}
+  $('feed').innerHTML='<table><thead><tr><th class="num">#</th><th>Elapsed</th><th>Bib</th><th>Runner</th><th></th></tr></thead><tbody>'+
+  all.map((f,i)=>({f,i})).reverse().map(({f,i})=>{
+    const el=fmtTime(f.time-S.raceStart,true);
+    if(f.bib==null)return `<tr class="unassigned" data-id="${f.id}"><td class="num">${i+1}</td><td class="mono"><b>${el}</b></td>`+
+      `<td><input class="assign" placeholder="bib" autocomplete="off"></td><td><span class="tag warn">No bib</span></td>`+
+      `<td class="act"><button class="btn sm primary" data-act="assign">Assign</button> <button class="btn sm danger" data-act="del">Delete</button></td></tr>`;
+    const p=bp.get(f.bib);
+    return `<tr data-id="${f.id}"><td class="num">${i+1}</td><td class="mono"><b>${el}</b></td><td><b>${esc(f.bib)}</b></td>`+
+      `<td>${p?esc(p.name):`<span class="tag bad">Not registered</span> <a href="#" data-act="reg" style="font-size:13px">Register</a>`}</td>`+
+      `<td class="act"><button class="btn sm" data-act="bib">Change bib</button> <button class="btn sm" data-act="time">Edit time</button> <button class="btn sm danger" data-act="del">Delete</button></td></tr>`;
+  }).join('')+'</tbody></table>';
+}
+function assignBib(id,raw){
+  const bib=norm(raw);if(!bib)return;
+  const ex=S.finishes.find(f=>f.bib===bib&&f.id!==id);
+  if(ex){alert(`Bib ${bib} already finished at ${fmtTime(ex.time-S.raceStart,true)}.`);return;}
+  S.finishes.find(f=>f.id===id).bib=bib;save();renderAll();
+  if(!pmap().has(bib))setFinMsg('warn',`⚠ Bib ${esc(bib)} is not registered.`);else setFinMsg('','');
+}
+$('feed').addEventListener('click',e=>{
+  const a=e.target.closest('[data-act]');if(!a)return;
+  e.preventDefault();
+  const tr=a.closest('tr'),id=+tr.dataset.id,f=S.finishes.find(x=>x.id===id);
+  switch(a.dataset.act){
+    case 'assign':assignBib(id,tr.querySelector('.assign').value);break;
+    case 'bib':{const v=prompt('Correct bib number:',f.bib);if(v!==null)assignBib(id,v);break;}
+    case 'time':{
+      const v=prompt('Elapsed time (m:ss or h:mm:ss, tenths allowed e.g. 21:34.5):',fmtTime(f.time-S.raceStart,true));
+      if(v===null)break;
+      const ms=parseElapsed(v);
+      if(ms==null||ms<0){alert('Could not read that time.');break;}
+      f.time=S.raceStart+ms;save();renderAll();break;
+    }
+    case 'del':
+      if(confirm(`Delete finish #${sortedFinishes().indexOf(f)+1} (${fmtTime(f.time-S.raceStart,true)}${f.bib?', bib '+f.bib:''})?`)){
+        S.finishes=S.finishes.filter(x=>x!==f);save();renderAll();
+      }
+      break;
+    case 'reg':
+      switchTab('reg');$('rBib').value=f.bib;$('rName').focus();break;
+  }
+});
+$('feed').addEventListener('keydown',e=>{
+  if(e.key==='Enter'&&e.target.classList.contains('assign')){
+    e.preventDefault();assignBib(+e.target.closest('tr').dataset.id,e.target.value);
+  }
+});
+$('undoLast').onclick=()=>{
+  if(!S.finishes.length)return;
+  const f=S.finishes[S.finishes.length-1];
+  if(confirm(`Remove the most recent entry (${fmtTime(f.time-S.raceStart,true)}${f.bib?', bib '+f.bib:', no bib'})?`)){
+    S.finishes.pop();save();renderAll();setFinMsg('','');
+  }
+  $('bibInput').focus();
+};
+$('editStart').onclick=()=>{
+  const d=new Date(S.raceStart);
+  const cur=`${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}.${pad(d.getMilliseconds(),3)}`;
+  const v=prompt('New start time (24-hour HH:MM:SS, local time).\nAll elapsed times will shift to match.',cur);
+  if(v===null)return;
+  const m=v.trim().match(/^(\d{1,2}):(\d{2}):(\d{2})(?:\.(\d{1,3}))?$/);
+  if(!m){alert('Use the format HH:MM:SS');return;}
+  const n=new Date(S.raceStart);
+  n.setHours(+m[1],+m[2],+m[3],m[4]?+m[4].padEnd(3,'0'):0);
+  S.raceStart=n.getTime();save();renderAll();
+};
+$('backupNow').onclick=backup;
+$('endBtn').onclick=()=>{
+  const t=Date.now();
+  const fin=results().length,un=S.finishes.filter(f=>f.bib==null).length,bad=S.finishes.filter(f=>f.bib!=null&&!pmap().has(f.bib)).length;
+  const dnf=S.participants.filter(p=>!p.dns&&!S.finishes.some(f=>f.bib===p.bib)).length;
+  let m=`End the race and stop the clock?\n\n${fin} finished, ${dnf} will be marked DNF.`;
+  if(un)m+=`\n\nWARNING: ${un} finish time(s) still have no bib.`;
+  if(bad)m+=`\n\nWARNING: ${bad} finish time(s) have an unregistered bib.`;
+  m+='\n\nNo new finishes can be recorded after this (you can still correct entries, or reopen the race).';
+  if(!confirm(m))return;
+  S.raceEnd=t;save();renderAll();
+};
+$('reopenBtn').onclick=()=>{
+  if(!confirm('Reopen the race? The clock will resume from the original start time and finishes can be recorded again.'))return;
+  S.raceEnd=null;save();renderAll();$('bibInput').focus();
+};
+
+/* ---------- dashboard ---------- */
+document.querySelectorAll('#viewSeg button').forEach(b=>b.onclick=()=>{ui.view=b.dataset.view;renderDash();});
+$('fSex').onchange=e=>{ui.sex=e.target.value;renderDash();};
+$('fAg').onchange=e=>{ui.ag=e.target.value;renderDash();};
+$('awExcl').onchange=renderDash;
+$('printBtn').onclick=()=>window.print();
+
+function renderDash(){
+  const rows=results(),n=S.participants.length;
+  const dns=S.participants.filter(p=>p.dns&&!rows.some(r=>r.p===p)).length;
+  const started=S.raceStart!=null;
+  const ended=S.raceEnd!=null;
+  const onCourse=started?Math.max(0,n-dns-rows.length):0;
+  $('stats').innerHTML=
+    `<div class="stat"><b>${n}</b><span>Registered</span></div>`+
+    `<div class="stat"><b>${rows.length}</b><span>Finished</span></div>`+
+    `<div class="stat"><b>${started?onCourse:'–'}</b><span>${ended?'DNF':'On course'}</span></div>`+
+    `<div class="stat"><b>${dns}</b><span>DNS</span></div>`+
+    `<div class="stat"><b class="liveclock" style="font-size:22px;font-family:ui-monospace,Consolas,monospace;padding-top:6px">${started?'':'Not started'}</b><span>${ended?'Final time':'Race clock'}</span></div>`;
+  const orphan=S.finishes.filter(f=>f.bib==null||!pmap().has(f.bib)).length;
+  $('dashWarn').innerHTML=orphan?`<div class="msg warn" style="margin:0 0 18px">${orphan} finish time(s) have no bib or an unregistered bib and are not shown below. Fix them on the Race Control / Registration tabs.</div>`:'';
+
+  // age group filter options
+  const sel=$('fAg'),opts=['all',...groups().map(g=>g.label)];
+  if(sel.options.length!==opts.length||[...sel.options].some((o,i)=>o.value!==opts[i])){
+    sel.innerHTML=opts.map(o=>`<option value="${esc(o)}">${o==='all'?'All':esc(o)}</option>`).join('');
+  }
+  if(!opts.includes(ui.ag))ui.ag='all';
+  sel.value=ui.ag;$('fSex').value=ui.sex;
+  document.querySelectorAll('#viewSeg button').forEach(b=>b.classList.toggle('on',b.dataset.view===ui.view));
+  $('resFilters').hidden=ui.view!=='results';$('awFilters').hidden=ui.view!=='awards';
+  $('printTitle').textContent=`${S.raceName} – ${ui.view==='awards'?'Awards':'Results'}${ended?' (Final)':''}`;
+
+  $('dashBody').innerHTML=ui.view==='awards'?awardsHtml(rows):resultsHtml(rows);
+}
+
+function resultsHtml(rows){
+  if(S.raceStart==null)return '<div class="empty">The race has not started yet.</div>';
+  let v=rows;
+  if(ui.sex!=='all')v=v.filter(r=>r.p.gender===ui.sex);
+  if(ui.ag!=='all')v=v.filter(r=>r.ag===ui.ag);
+  const hl=ui.ag!=='all'?'agRank':ui.sex!=='all'?'sexRank':'overall';
+  const c=k=>k===hl?' class="num hl"':' class="num"';
+  let h='';
+  if(!v.length)h='<div class="empty">No finishers match this view yet.</div>';
+  else h='<table><thead><tr><th class="num">Overall</th><th class="num">Sex</th><th class="num">Age grp</th><th>Bib</th><th>Name</th><th>M/F</th><th class="num">Age</th><th>Age group</th><th class="num">Time</th><th class="num">Pace</th></tr></thead><tbody>'+
+    v.map(r=>`<tr><td${c('overall')}>${r.overall}</td><td${c('sexRank')}>${r.sexRank}</td><td${c('agRank')}>${r.agRank}</td><td><b>${esc(r.p.bib)}</b></td><td>${esc(r.p.name)}</td><td>${r.p.gender}</td><td class="num">${r.p.age}</td><td>${esc(r.ag)}</td><td class="num mono"><b>${fmtTime(r.ms,S.tenths)}</b></td><td class="num mono">${fmtPace(r.ms)}</td></tr>`).join('')+'</tbody></table>';
+  const done=new Set(rows.map(r=>r.p.bib));
+  const left=S.participants.filter(p=>!done.has(p.bib)&&!p.dns&&(ui.sex==='all'||p.gender===ui.sex)&&(ui.ag==='all'||ageGroup(p.age)===ui.ag)).sort((a,b)=>cmpBib(a.bib,b.bib));
+  if(left.length)h+=`<details class="noprint"${S.raceEnd!=null?' open':''}><summary>${S.raceEnd!=null?'Did not finish':'Not yet finished'} (${left.length})</summary><div class="chips">${left.map(p=>`<span class="chip"><b>${esc(p.bib)}</b> ${esc(p.name)}</span>`).join('')}</div></details>`;
+  return h;
+}
+
+function awardsHtml(rows){
+  if(S.raceStart==null)return '<div class="empty">The race has not started yet.</div>';
+  const ex=$('awExcl').checked;
+  const card=(title,list)=>`<div class="award"><h3>${esc(title)}</h3>`+(list.length?'<ol>'+list.map((r,i)=>`<li><span class="pl">${i+1}</span><span class="nm">${esc(r.p.name)} <span class="bb">#${esc(r.p.bib)} · ${r.p.age}</span></span><span class="tm">${fmtTime(r.ms,S.tenths)}</span></li>`).join('')+'</ol>':'<div class="empty" style="padding:6px 0">No finishers yet</div>')+'</div>';
+  let h='';
+  for(const [g,gl] of [['F','Female'],['M','Male']]){
+    const gr=rows.filter(r=>r.p.gender===g),top=gr.slice(0,3);
+    const used=new Set(ex?top.map(r=>r.f.id):[]);
+    h+=`<h2 class="sexhead">${gl}</h2><div class="awards">`+card(`${gl} overall`,top);
+    for(const grp of groups()){
+      const list=gr.filter(r=>r.ag===grp.label&&!used.has(r.f.id)).slice(0,3);
+      if(list.length)h+=card(`${gl} ${grp.label}`,list);
+    }
+    h+='</div>';
+  }
+  return h;
+}
+
+$('exportRes').onclick=()=>{
+  const rows=results();
+  download(`${slug()}-results.csv`,toCsv([['Overall','Sex Place','Age Group Place','Bib','Name','Gender','Age','Age Group','Time','Pace /mi'],
+    ...rows.map(r=>[r.overall,r.sexRank,r.agRank,r.p.bib,r.p.name,r.p.gender,r.p.age,r.ag,fmtTime(r.ms,true),fmtTime(r.ms/MILES,false)]),
+    ...(S.raceEnd!=null?S.participants.filter(p=>!p.dns&&!rows.some(r=>r.p===p)).sort((a,b)=>cmpBib(a.bib,b.bib)).map(p=>['DNF','','',p.bib,p.name,p.gender,p.age,ageGroup(p.age),'DNF','']):[])]));
+};
+
+/* ---------- settings ---------- */
+function fillSettings(){
+  $('sName').value=S.raceName;$('sAges').value=S.ageStarts;$('sTenths').checked=!!S.tenths;previewAges();
+}
+function previewAges(){$('agPreview').textContent='Groups: '+groups().map(g=>g.label).join(' · ');}
+$('sName').oninput=e=>{S.raceName=e.target.value||'5K Race';save();renderHeader();renderDash();};
+$('sAges').oninput=e=>{S.ageStarts=e.target.value;save();previewAges();renderAll();};
+$('sTenths').onchange=e=>{S.tenths=e.target.checked;save();renderAll();};
+$('expJson').onclick=backup;
+$('impFile').addEventListener('change',e=>{
+  const file=e.target.files[0];if(!file)return;
+  const rd=new FileReader();
+  rd.onload=()=>{
+    try{
+      const d=JSON.parse(rd.result);
+      if(!Array.isArray(d.participants)||!Array.isArray(d.finishes))throw 0;
+      if(!confirm(`Replace ALL current data with this backup (${d.participants.length} participants, ${d.finishes.length} finish entries)?`))return;
+      S=Object.assign(defaults(),d);save();fillSettings();renderAll();resetForm();
+    }catch(_){alert('That file is not a valid backup.');}
+  };
+  rd.readAsText(file);e.target.value='';
+});
+$('clearRace').onclick=()=>{
+  if(!confirm('Clear the race start time and ALL finish entries? Participants are kept.'))return;
+  if(!confirm('Are you sure? This cannot be undone (download a backup first if unsure).'))return;
+  S.raceStart=null;S.raceEnd=null;S.finishes=[];save();renderAll();
+};
+$('clearAll').onclick=()=>{
+  if(!confirm('Delete ALL participants, the race start and all finishes?'))return;
+  if(!confirm('Are you absolutely sure?'))return;
+  S=defaults();save();fillSettings();renderAll();resetForm();
+};
+
+/* ---------- render all / clock ---------- */
+function renderHeader(){
+  $('title').textContent=S.raceName;document.title=S.raceName+' – Timer';
+}
+function renderCtl(){
+  const on=S.raceStart!=null;
+  $('ctlPre').hidden=on;$('ctlRun').hidden=!on;
+  $('preCount').textContent=S.participants.length;
+  if(on){
+    const ended=S.raceEnd!=null;
+    $('finInput').hidden=ended;$('endBtn').hidden=ended;$('reopenBtn').hidden=!ended;
+    $('endBanner').hidden=!ended;
+    if(ended)$('endBanner').textContent=`Race ended at ${tod(S.raceEnd)} · final time ${fmtTime(S.raceEnd-S.raceStart,true)} · results are final`;
+    $('startedAt').textContent='Started '+new Date(S.raceStart).toLocaleDateString([], {weekday:'short',month:'short',day:'numeric'})+' at '+tod(S.raceStart)+'.'+pad(S.raceStart%1000,3);
+    renderFeed();
+  }
+}
+function renderAll(){renderHeader();renderReg();renderCtl();renderDash();tick();}
+
+function tick(){
+  const txt=S.raceStart==null?'Not started':fmtTime((S.raceEnd??Date.now())-S.raceStart,true);
+  document.querySelectorAll('.liveclock').forEach(el=>{if(el.textContent!==txt)el.textContent=txt;});
+}
+setInterval(tick,100);
+
+window.addEventListener('storage',e=>{if(e.key===KEY){load();fillSettings();renderAll();}});
+
+/* ---------- init ---------- */
+load();fillSettings();
+switchTab(ui.tab);
+renderAll();
+resetForm();
+if(ui.tab!=='reg')switchTab(ui.tab);
+})();
+</script>
+</body>
+</html>
