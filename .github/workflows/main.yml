@@ -1,0 +1,62 @@
+name: Snyk Security Scan
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write   # needed to upload SARIF to GitHub Code Scanning
+
+jobs:
+  snyk:
+    runs-on: ubuntu-latest
+    env:
+      SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Set up Snyk CLI
+        uses: snyk/actions/setup@master
+
+      # Open source dependencies (SCA)
+      - name: Snyk Open Source test
+        run: snyk test --severity-threshold=medium --sarif-file-output=snyk-oss.sarif
+        continue-on-error: true
+
+      # Source code (SAST) - requires Snyk Code enabled in your org
+      - name: Snyk Code test
+        run: snyk code test --severity-threshold=medium --sarif-file-output=snyk-code.sarif
+        continue-on-error: true
+
+      - name: Upload Open Source results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always() && hashFiles('snyk-oss.sarif') != ''
+        with:
+          sarif_file: snyk-oss.sarif
+          category: snyk-open-source
+
+      - name: Upload Code results
+        uses: github/codeql-action/upload-sarif@v3
+        if: always() && hashFiles('snyk-code.sarif') != ''
+        with:
+          sarif_file: snyk-code.sarif
+          category: snyk-code
+
+      # Optional: record the project in the Snyk web UI (main branch only)
+      - name: Snyk monitor
+        if: github.ref == 'refs/heads/main'
+        run: snyk monitor
+        continue-on-error: true
