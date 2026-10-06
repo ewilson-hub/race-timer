@@ -21,5 +21,6 @@ app.get('/hello', (req, res) => {
 
 // Hardcoded secret
 const DB_PASSWORD = 'SuperSecret123!';
+const DB_PASSWORD = 'SuperSecret1234!';
 
 app.listen(3000);
