@@ -1,0 +1,13 @@
+{
+  "name": "race-timer",
+  "version": "1.0.0",
+  "description": "Race timer demo app",
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "dependencies": {
+    "express": "4.17.1",
+    "lodash": "4.17.15",
+    "minimist": "1.2.0",
+    "moment": "2.19.3"
+  }
+}
